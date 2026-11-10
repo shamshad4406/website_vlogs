@@ -1,24 +1,41 @@
+```gitignore
+# Logs
 *.log
-.DS_Store
+
+# Environment files
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
 /.fleet
 /.idea
 /.nova
-/.phpunit.cache
 /.vscode
 /.zed
+.phpactor.json
+
+# PHPUnit
+.phpunit.result.cache
+/.phpunit.cache
+
+# Authentication
 /auth.json
+
+# Laravel
+/vendor
 /node_modules
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
+
+# Homestead
 Homestead.json
 Homestead.yaml
-Thumbs.db
+```
