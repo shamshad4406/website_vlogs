@@ -3,15 +3,27 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Tag;
+use App\Support\ActivityLogger;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class TagController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $tags = Tag::latest()->paginate(20);
-        return view('admin.tags.index', compact('tags'));
+        $tags = Tag::withCount('vlogs')
+            ->when($request->filled('q'), fn ($q) => $q->where('name', 'like', '%'.$request->string('q').'%'))
+            ->when($request->string('sort')->toString() === 'used', fn ($q) => $q->orderByDesc('vlogs_count'))
+            ->when($request->string('sort')->toString() !== 'used', fn ($q) => $q->orderBy('name'))
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('admin.tags.index', [
+            'tags' => $tags,
+            'unused' => Tag::doesntHave('vlogs')->count(),
+        ]);
     }
 
     public function create()
@@ -21,42 +33,62 @@ class TagController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:tags',
+        $data = $request->validate([
+            'names' => ['required', 'string', 'max:2000'],
         ]);
 
-        Tag::create([
-            'name' => $request->name,
-            'slug' => $request->slug,
-        ]);
+        $added = 0;
 
-        return redirect()->route('admin.tags.index')->with('success', 'Tag created successfully.');
+        foreach (preg_split('/[\n,]+/', $data['names']) as $raw) {
+            $name = trim($raw);
+
+            if ($name === '' || mb_strlen($name) > 40) {
+                continue;
+            }
+
+            $tag = Tag::firstOrCreate(['slug' => Str::slug($name)], ['name' => $name]);
+
+            if ($tag->wasRecentlyCreated) {
+                $added++;
+            }
+        }
+
+        ActivityLogger::log('tag.create', null, "Added {$added} tag(s)");
+
+        return redirect()->route('admin.tags.index')->with('success', $added.' tag(s) added.');
     }
 
     public function edit(Tag $tag)
     {
+        $tag->loadCount('vlogs');
+
         return view('admin.tags.edit', compact('tag'));
     }
 
     public function update(Request $request, Tag $tag)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|unique:tags,slug,' . $tag->id,
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:40', Rule::unique('tags', 'name')->ignore($tag->id)],
         ]);
 
         $tag->update([
-            'name' => $request->name,
-            'slug' => $request->slug,
+            'name' => $data['name'],
+            'slug' => Str::slug($data['name']),
         ]);
 
-        return redirect()->route('admin.tags.index')->with('success', 'Tag updated successfully.');
+        ActivityLogger::log('tag.update', $tag, 'Renamed a tag to '.$tag->name);
+
+        return redirect()->route('admin.tags.index')->with('success', 'Tag updated.');
     }
 
     public function destroy(Tag $tag)
     {
+        $name = $tag->name;
+        $tag->vlogs()->detach();
         $tag->delete();
-        return redirect()->route('admin.tags.index')->with('success', 'Tag deleted successfully.');
+
+        ActivityLogger::log('tag.delete', null, 'Deleted tag '.$name);
+
+        return back()->with('success', 'Tag deleted.');
     }
 }

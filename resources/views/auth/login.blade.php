@@ -1,47 +1,54 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    @section('title', 'Sign in')
 
-    <form method="POST" action="{{ route('login') }}">
+    <h1 class="font-display text-2xl font-bold">Welcome back</h1>
+    <p class="mt-2 text-sm text-ink-500 dark:text-ink-400">
+        Sign in to comment, follow creators and keep your library.
+    </p>
+
+    <x-auth-session-status class="mt-6" :status="session('status')" />
+    <x-auth-errors />
+
+    <form method="POST" action="{{ route('login') }}" class="mt-6 space-y-5">
         @csrf
 
-        <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            <x-text-input id="email" type="email" name="email" :value="old('email')"
+                          required autofocus autocomplete="username"
+                          placeholder="you@example.com"
+                          @class(['field-invalid' => $errors->has('email')]) />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
+        <div>
+            <div class="flex items-center justify-between">
+                <x-input-label for="password" :value="__('Password')" />
+                @if (Route::has('password.request'))
+                    <a href="{{ route('password.request') }}"
+                       class="text-sm font-medium text-brand-700 hover:underline dark:text-brand-300">
+                        Forgot it?
+                    </a>
+                @endif
+            </div>
+            <x-password-input name="password" autocomplete="current-password"
+                              @class(['field-invalid' => $errors->has('password')]) />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
+        <label class="flex cursor-pointer items-center gap-2.5 text-sm">
+            <input type="checkbox" name="remember" value="1" @checked(old('remember'))
+                   class="rounded border-ink-300 text-brand-700 focus:ring-brand-500 dark:border-white/20 dark:bg-ink-950">
+            Keep me signed in
+        </label>
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
+        <x-primary-button class="w-full justify-center btn-lg">Sign in</x-primary-button>
     </form>
+
+    <p class="mt-6 text-sm text-ink-500 dark:text-ink-400">
+        New here?
+        <a href="{{ route('register') }}" class="font-semibold text-brand-700 hover:underline dark:text-brand-300">
+            Create a free account
+        </a>
+    </p>
 </x-guest-layout>

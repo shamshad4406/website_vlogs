@@ -1,0 +1,41 @@
+# -----------------------------------------------------------------------------
+# This file only exists because the project folder itself is inside the web
+# root, which is what happens with XAMPP at http://localhost/website_vlog.
+#
+# Laravel's front controller lives in public/. Rewriting requests into that
+# folder internally does not work from a sub-directory, because the framework
+# then cannot work out which part of the URL is the application base. So this
+# sends visitors to public/ instead, and blocks direct access to everything
+# that must never be served.
+#
+# On a real server, point the virtual host DocumentRoot at the public/ folder
+# and delete this file. That is both faster and safer: with the project root
+# outside the web root, .env cannot be requested at all.
+# -----------------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Must match the URL path of this folder. If you rename or move the
+    # project, change this line too, or a redirect will land on a file path.
+    RewriteBase /website_vlog/
+
+    # Never serve these, whatever else happens.
+    RewriteRule ^(\.env|\.env\..*|composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml)$ - [F,L]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor|\.git)/ - [F,L]
+
+    # Send everything else to the front controller in public/.
+    RewriteCond %{REQUEST_URI} !^/?website_vlog/public/
+    RewriteRule ^(.*)$ public/$1 [R=301,L]
+</IfModule>
+
+# Belt and braces, for servers without mod_rewrite.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<Files ".env">
+    Require all denied
+</Files>
+
+Options -Indexes

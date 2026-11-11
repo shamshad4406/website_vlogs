@@ -1,59 +1,161 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# VlogHub
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A multi-role vlogging platform built on Laravel 12: creators upload, a human
+reviews every upload, and viewers discover, watch, save and follow.
 
-## About Laravel
+Built against the *VlogHub Product Blueprint & Market Launch Plan v1.0*.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Running it locally
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+You need PHP 8.2+, MySQL 8, Composer and Node 18+.
 
-## Learning Laravel
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Create the database named in `DB_DATABASE`, then:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+php artisan migrate --seed
+php artisan storage:link
+npm run build
+```
 
-## Laravel Sponsors
+`php artisan serve` runs it at `http://127.0.0.1:8000`.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Under XAMPP
 
-### Premium Partners
+With the project sitting in `htdocs`, the application is at:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```
+http://localhost/website_vlog/public/
+```
 
-## Contributing
+The `.htaccess` in the project root redirects `/website_vlog/` to that URL and
+blocks direct requests for `.env`, `composer.json` and the framework folders.
+It contains a `RewriteBase` that must match the folder name, so change it if
+you rename or move the project.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+`APP_URL` must include the `/public` part for console-generated links (emails,
+sitemaps) to be right.
 
-## Code of Conduct
+On a real server, point the virtual host DocumentRoot at `public/` and delete
+that file. It is faster, the URLs lose `/public`, and `.env` ends up outside
+the web root where it cannot be requested at all.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### The accounts the seeder creates
 
-## Security Vulnerabilities
+| Account | Where it comes from |
+| --- | --- |
+| Administrator | `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`. If no password is set, one is generated and printed once during seeding. |
+| Five demo creators | Printed during seeding; the password is also saved to `DEMO_PASSWORD` in `.env`. |
+| Three demo viewers | Same password as the creators. |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The seeder also creates 29 demo vlogs with generated artwork, comments, likes,
+follows, view history, a series, a playlist, advertisements and earnings, so
+every screen has real data in it.
 
-## License
+### Background work
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Two processes are needed for the platform to behave correctly:
+
+```bash
+php artisan queue:work
+```
+
+```bash
+php artisan schedule:work
+```
+
+On a server, run the queue worker under Supervisor and add one cron entry:
+
+```bash
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+The schedule publishes vlogs whose scheduled time arrives, rolls up daily
+statistics, expires finished ad campaigns, prunes raw view rows after 90 days
+and sends the weekly digest.
+
+---
+
+## How it is put together
+
+| Layer | Choice |
+| --- | --- |
+| Backend | Laravel 12, PHP 8.2 |
+| Front end | Blade + Tailwind 3 + Alpine.js, built with Vite. One design system across the public site, the studio and the admin panel. No CDN stylesheets. |
+| Database | MySQL 8 (SQLite in tests) |
+| Queue, cache, session | Database drivers by default; switch to Redis in production |
+| Search | MySQL FULLTEXT with a LIKE fallback |
+| Video | Progressive playback out of the box; HLS when FFmpeg is installed |
+
+### Roles
+
+`Admin`, `Creator`, `User`, plus `Moderator`, `Support`, `Finance` and
+`Editor` for staff. The `roles`, `permissions` and `role_permissions` tables
+drive the admin *Roles and permissions* screen; admins bypass permission
+checks entirely.
+
+### The video pipeline
+
+FFmpeg is optional and detected at runtime.
+
+- **Without FFmpeg** (the default): uploads are stored and played back as a
+  single progressive file, the duration is read in the browser during upload,
+  and a creator-supplied thumbnail is required.
+- **With FFmpeg** (set `FFMPEG_PATH` and `FFPROBE_PATH`): the queue job probes
+  the real duration, cuts thumbnail candidates and builds 360p–1080p HLS
+  renditions. The player loads `hls.js` only when it is needed.
+
+### What the blueprint listed as critical, and where it is handled
+
+| Finding | Where |
+| --- | --- |
+| C1 — drafts and private vlogs readable by URL | `Vlog::isViewableBy()`, enforced in `VlogController::show`, covered by `tests/Feature/VlogVisibilityTest.php` |
+| C2 — raw storage paths, missing storage link | `media_url()` in `app/Helpers/helpers.php`, used by every model accessor |
+| C3 — exposed `.env` | Key rotated, `.env.example` rewritten, root `.htaccess` blocks dotfiles and framework folders |
+| H1 — no commenting | `CommentController`, `ContentFilter`, moderation queue |
+| H2 — a refresh counted as a view | `ViewRecorder`, de-duplicated per visitor per 30 minutes, aggregated daily |
+| H3 — uploads straight to disk | Real MIME validation, size and duration limits, queued processing |
+| H4 — no way to apply as a creator | `BecomeCreatorController` and the public creator directory |
+| H5 — no rate limiting | Named limiters in `AppServiceProvider` on comments, reactions, follows, reports, search, uploads and public forms |
+| M1 — slug changed on every edit | Slug frozen after publication; `vlog_slug_history` keeps old links working with a 301 |
+| M4 — slow LIKE search | FULLTEXT index plus filters for category, duration, date, creator and place |
+| M5 — placeholder content | Local SVG and GD artwork; no external placeholder service |
+| M6 — two UI systems | One Tailwind design system everywhere |
+
+---
+
+## Tests
+
+```bash
+php artisan test
+```
+
+221 tests cover visibility rules, the community loop, the creator workflow,
+role access control, security headers and rate limits, every admin and studio
+screen, and the public site.
+
+Style: `./vendor/bin/pint`.
+
+---
+
+## Before you launch
+
+1. Set `APP_ENV=production`, `APP_DEBUG=false` and a fresh `APP_KEY`.
+2. Serve over HTTPS, set `SESSION_SECURE_COOKIE=true`.
+3. Configure real SMTP, plus SPF, DKIM and DMARC for the sending domain.
+4. Have a lawyer review the policy pages, which are drafts.
+5. Fill in the legal settings, including the grievance officer.
+6. Set up daily off-site backups and test a restore.
+7. Build caches on deploy: `config:cache`, `route:cache`, `view:cache`.
+8. Run the queue worker under Supervisor and the scheduler from cron.
+
+Admin → **System health** checks most of this for you and says what is still
+outstanding.

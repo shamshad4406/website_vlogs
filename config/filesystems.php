@@ -41,6 +41,8 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
+            // Most URLs come from the media_url() helper, which follows the
+            // current request host. This stays for console and queue contexts.
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,

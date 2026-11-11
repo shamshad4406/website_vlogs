@@ -1,139 +1,145 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+      data-theme="{{ auth()->user()->theme ?? 'system' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Studio') &middot; {{ setting('site_name', config('app.name')) }}</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 
-    <title>{{ config('app.name', 'VlogHub') }} - Creator</title>
+    <script>
+        (() => {
+            try {
+                const stored = localStorage.getItem('vloghub:theme');
+                const theme = stored ?? document.documentElement.dataset.theme ?? 'system';
+                document.documentElement.classList.toggle('dark', theme === 'dark'
+                    || (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches));
+            } catch {}
+        })();
+    </script>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        * {
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        body {
-            background: #f8f9fa;
-        }
-
-        .creator-sidebar {
-            background: white;
-            min-height: 100vh;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .creator-nav-link {
-            color: #1a1a2e;
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .creator-nav-link:hover,
-        .creator-nav-link.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .main-content {
-            padding: 30px;
-        }
-
-        .btn-creator {
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-creator:hover {
-            background: #5568d3;
-            color: white;
-        }
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
-    <div class="d-flex">
-        <!-- Sidebar -->
-        <div class="creator-sidebar" style="width: 250px;">
-            <div class="p-4">
-                <h5 class="mb-4" style="color: #667eea; font-weight: 700;">
-                    <i class="bi bi-play-circle-fill"></i> VlogHub
-                </h5>
-                <div class="mb-4 pb-3" style="border-bottom: 1px solid #e0e0e0;">
-                    <div class="d-flex align-items-center gap-3">
-                        <div style="width: 50px; height: 50px; border-radius: 50%; background: #667eea; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                            {{ substr(auth()->user()->name, 0, 1) }}
-                        </div>
-                        <div>
-                            <h6 class="mb-0" style="font-size: 0.9rem;">{{ auth()->user()->name }}</h6>
-                            <small class="text-muted">Creator</small>
-                        </div>
-                    </div>
-                </div>
-                <nav>
-                    <a href="{{ route('creator.dashboard') }}" class="creator-nav-link {{ request()->is('creator') ? 'active' : '' }}">
-                        <i class="bi bi-speedometer2"></i> Dashboard
+<body class="min-h-screen bg-ink-50 font-sans text-ink-800 dark:bg-ink-950 dark:text-ink-100">
+
+@php
+    $user = auth()->user();
+    $pendingCount = \App\Models\Vlog::where('creator_id', $user->id)->where('status', 'pending')->count();
+
+    $nav = [
+        ['label' => 'Dashboard', 'icon' => 'home', 'route' => 'creator.dashboard', 'url' => route('creator.dashboard')],
+        ['label' => 'Your vlogs', 'icon' => 'video', 'route' => 'creator.vlogs.*', 'url' => route('creator.vlogs.index'), 'badge' => $pendingCount ?: null],
+        ['label' => 'Analytics', 'icon' => 'chart', 'route' => 'creator.analytics*', 'url' => route('creator.analytics')],
+        ['label' => 'Comments', 'icon' => 'message', 'route' => 'creator.comments.*', 'url' => route('creator.comments.index')],
+        ['label' => 'Series', 'icon' => 'layers', 'route' => 'creator.series.*', 'url' => route('creator.series.index')],
+        ['label' => 'Earnings', 'icon' => 'wallet', 'route' => 'creator.earnings.*', 'url' => route('creator.earnings.index')],
+        ['label' => 'Channel', 'icon' => 'user', 'route' => 'creator.profile.*', 'url' => route('creator.profile.edit')],
+    ];
+@endphp
+
+<div x-data="{ sidebar: false }" class="flex min-h-screen">
+
+    {{-- Sidebar --}}
+    <aside class="fixed inset-y-0 left-0 z-50 w-64 shrink-0 -translate-x-full border-r border-ink-200 bg-white transition-transform dark:border-white/10 dark:bg-ink-900 lg:static lg:translate-x-0"
+           :class="sidebar && 'translate-x-0'">
+        <div class="flex h-16 items-center justify-between gap-2 border-b border-ink-200 px-4 dark:border-white/10">
+            <a href="{{ route('home') }}" class="flex items-center gap-2">
+                <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-700 text-white">
+                    <x-icon name="play" class="h-4 w-4 fill-current" />
+                </span>
+                <span class="font-display text-sm font-bold">Creator studio</span>
+            </a>
+            <button type="button" @click="sidebar = false" class="btn-ghost p-1.5 lg:hidden" aria-label="Close menu">
+                <x-icon name="x" class="h-5 w-5" />
+            </button>
+        </div>
+
+        <div class="flex h-[calc(100vh-4rem)] flex-col justify-between overflow-y-auto p-3">
+            <nav class="space-y-1">
+                <a href="{{ route('creator.vlogs.create') }}" class="btn-primary mb-3 w-full">
+                    <x-icon name="upload" class="h-4 w-4" /> Upload a vlog
+                </a>
+
+                @foreach ($nav as $item)
+                    <a href="{{ $item['url'] }}"
+                       class="nav-item {{ request()->routeIs($item['route']) ? 'nav-item-active' : '' }}">
+                        <x-icon :name="$item['icon']" class="h-4.5 w-4.5" />
+                        <span class="flex-1">{{ $item['label'] }}</span>
+                        @if (! empty($item['badge']))
+                            <span class="badge-warning">{{ $item['badge'] }}</span>
+                        @endif
                     </a>
-                    <a href="{{ route('creator.vlogs.create') }}" class="creator-nav-link {{ request()->is('creator/vlogs/create') ? 'active' : '' }}">
-                        <i class="bi bi-plus-circle"></i> Upload Vlog
+                @endforeach
+            </nav>
+
+            <div class="space-y-1 border-t border-ink-200 pt-3 dark:border-white/10">
+                @if ($user->username)
+                    <a href="{{ route('creators.show', $user->username) }}" class="nav-item">
+                        <x-icon name="external" class="h-4.5 w-4.5" /> View public channel
                     </a>
-                    <a href="{{ route('creator.vlogs.index') }}" class="creator-nav-link {{ request()->is('creator/vlogs*') ? 'active' : '' }}">
-                        <i class="bi bi-camera-video"></i> My Vlogs
-                    </a>
-                    <a href="{{ route('creator.profile.edit') }}" class="creator-nav-link {{ request()->is('creator/profile') ? 'active' : '' }}">
-                        <i class="bi bi-person"></i> Profile
-                    </a>
-                    <hr>
-                    <a href="{{ route('home') }}" class="creator-nav-link">
-                        <i class="bi bi-house"></i> View Site
-                    </a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="creator-nav-link w-100 text-start" style="border: none; background: none; cursor: pointer;">
-                            <i class="bi bi-box-arrow-right"></i> Logout
-                        </button>
-                    </form>
-                </nav>
+                @endif
+                <a href="{{ route('home') }}" class="nav-item">
+                    <x-icon name="home" class="h-4.5 w-4.5" /> Back to site
+                </a>
             </div>
         </div>
+    </aside>
 
-        <!-- Main Content -->
-        <div class="flex-grow-1 main-content">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div x-show="sidebar" x-cloak @click="sidebar = false"
+         class="fixed inset-0 z-40 bg-ink-950/50 lg:hidden"></div>
+
+    {{-- Main --}}
+    <div class="flex min-w-0 flex-1 flex-col">
+        <header class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-ink-200 bg-white/95 px-4 backdrop-blur dark:border-white/10 dark:bg-ink-950/95 sm:px-6">
+            <button type="button" @click="sidebar = true" class="btn-ghost p-2 lg:hidden" aria-label="Open menu">
+                <x-icon name="menu" class="h-5 w-5" />
+            </button>
+
+            <p class="truncate font-display text-base font-semibold">@yield('title', 'Studio')</p>
+
+            <div class="ml-auto flex items-center gap-2">
+                <a href="{{ route('creator.vlogs.create') }}" class="btn-primary btn-sm hidden sm:inline-flex">
+                    <x-icon name="plus" class="h-4 w-4" /> Upload
+                </a>
+
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = ! open" class="flex items-center gap-2 rounded-full p-0.5">
+                        <img src="{{ $user->avatar_url }}" alt="" class="h-8 w-8 rounded-full object-cover">
+                    </button>
+                    <div x-show="open" x-cloak x-transition
+                         class="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-card border border-ink-200 bg-white py-1 shadow-lift dark:border-white/10 dark:bg-ink-900">
+                        <p class="border-b border-ink-100 px-4 py-2.5 text-sm font-semibold dark:border-white/10">{{ $user->channel_name }}</p>
+                        <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-ink-50 dark:hover:bg-white/5">
+                            <x-icon name="settings" class="h-4 w-4 text-ink-500" /> Account settings
+                        </a>
+                        <div class="flex items-center gap-1 border-t border-ink-100 px-3 py-2 dark:border-white/10">
+                            @foreach ([['light', 'sun'], ['dark', 'moon'], ['system', 'monitor']] as [$value, $icon])
+                                <button type="button" @click="setTheme('{{ $value }}')" class="btn-ghost p-2" aria-label="{{ $value }}">
+                                    <x-icon :name="$icon" class="h-4 w-4" />
+                                </button>
+                            @endforeach
+                        </div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-500/10">
+                                <x-icon name="logout" class="h-4 w-4" /> Sign out
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            @endif
+            </div>
+        </header>
 
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
+        <main class="flex-1 p-4 sm:p-6">
+            <x-alerts />
             @yield('content')
-        </div>
+        </main>
     </div>
+</div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<x-toasts />
+@stack('scripts')
 </body>
 </html>

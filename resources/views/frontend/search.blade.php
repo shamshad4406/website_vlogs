@@ -1,178 +1,135 @@
 @extends('layouts.frontend')
 
 @section('content')
-<style>
-    .search-page {
-        background: #f8f9fa;
-        min-height: 100vh;
-        padding: 40px 0;
-    }
+    <x-page-header
+        :title="$query !== '' ? 'Results for “'.$query.'”' : 'Search'"
+        :subtitle="$query !== '' ? $vlogs->total().' '.Str::plural('vlog', $vlogs->total()).' found' : 'Find vlogs, creators, places and tags.'" />
 
-    .search-header {
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-    }
-
-    .search-term {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1a1a2e;
-    }
-
-    .filter-tabs {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .filter-tab {
-        padding: 10px 25px;
-        border-radius: 25px;
-        border: 1px solid #e0e0e0;
-        background: white;
-        color: #6c757d;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-    }
-
-    .filter-tab:hover,
-    .filter-tab.active {
-        background: #667eea;
-        color: white;
-        border-color: #667eea;
-    }
-
-    .vlog-card-new {
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        text-decoration: none;
-        color: inherit;
-    }
-
-    .vlog-card-new:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-    }
-
-    .vlog-thumbnail-new {
-        position: relative;
-        aspect-ratio: 16/9;
-        overflow: hidden;
-    }
-
-    .vlog-thumbnail-new img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: all 0.3s ease;
-    }
-
-    .vlog-card-new:hover .vlog-thumbnail-new img {
-        transform: scale(1.05);
-    }
-
-    .play-overlay-new {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: all 0.3s ease;
-    }
-
-    .vlog-card-new:hover .play-overlay-new {
-        opacity: 1;
-    }
-
-    .play-icon-new {
-        font-size: 3rem;
-        color: white;
-    }
-
-    .vlog-info {
-        padding: 15px;
-    }
-
-    .vlog-title {
-        font-weight: 600;
-        color: #1a1a2e;
-        margin-bottom: 8px;
-        font-size: 1rem;
-        line-height: 1.4;
-    }
-
-    .vlog-meta {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-
-    .vlog-meta span {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-</style>
-
-<div class="search-page">
-    <div class="container">
-        <div class="search-header">
-            <p class="text-muted mb-1">Search results for</p>
-            <h1 class="search-term">"{{ request('q') }}"</h1>
-            <div class="filter-tabs">
-                <a href="?q={{ request('q') }}&filter=all" class="filter-tab {{ request('filter', 'all') == 'all' ? 'active' : '' }}">All</a>
-                <a href="?q={{ request('q') }}&filter=videos" class="filter-tab {{ request('filter') == 'videos' ? 'active' : '' }}">Videos</a>
-                <a href="?q={{ request('q') }}&filter=creators" class="filter-tab {{ request('filter') == 'creators' ? 'active' : '' }}">Creators</a>
-                <a href="?q={{ request('q') }}&filter=categories" class="filter-tab {{ request('filter') == 'categories' ? 'active' : '' }}">Categories</a>
-            </div>
-        </div>
-
-        <div class="row">
-            @forelse($vlogs as $vlog)
-            <div class="col-md-3 mb-4">
-                <a href="{{ route('vlogs.show', $vlog->slug) }}" class="vlog-card-new">
-                    <div class="vlog-thumbnail-new">
-                        <img src="{{ $vlog->thumbnail ?? 'https://via.placeholder.com/400x225' }}" alt="{{ $vlog->title }}">
-                        <div class="play-overlay-new">
-                            <i class="bi bi-play-circle-fill play-icon-new"></i>
-                        </div>
-                    </div>
-                    <div class="vlog-info">
-                        <h5 class="vlog-title">{{ Str::limit($vlog->title, 60) }}</h5>
-                        <div class="vlog-meta">
-                            <span><i class="bi bi-person-circle"></i> {{ $vlog->creator->name }}</span>
-                            <span><i class="bi bi-eye"></i> {{ number_format($vlog->views_count) }}</span>
-                            <span><i class="bi bi-clock"></i> {{ $vlog->created_at->diffForHumans() }}</span>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            @empty
-            <div class="col-12">
-                <div class="alert alert-info text-center py-5">
-                    <i class="bi bi-search" style="font-size: 3rem;"></i>
-                    <h4 class="mt-3">No results found</h4>
-                    <p class="text-muted">Try a different search term</p>
+    <div class="grid gap-8 lg:grid-cols-4">
+        {{-- Filters --}}
+        <aside class="lg:col-span-1">
+            <form method="GET" action="{{ route('search') }}" class="panel space-y-4 lg:sticky lg:top-20">
+                <div>
+                    <label for="q" class="field-label">Keywords</label>
+                    <input id="q" type="search" name="q" value="{{ $query }}" class="field" placeholder="Street food Delhi">
                 </div>
-            </div>
-            @endforelse
+
+                <div>
+                    <label for="f-category" class="field-label">Category</label>
+                    <select id="f-category" name="category" class="field">
+                        <option value="">Any</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->slug }}" @selected(($filters['category'] ?? '') === $category->slug)>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="f-duration" class="field-label">Length</label>
+                    <select id="f-duration" name="duration" class="field">
+                        <option value="">Any length</option>
+                        <option value="short" @selected(($filters['duration'] ?? '') === 'short')>Under 4 minutes</option>
+                        <option value="medium" @selected(($filters['duration'] ?? '') === 'medium')>4 to 20 minutes</option>
+                        <option value="long" @selected(($filters['duration'] ?? '') === 'long')>Over 20 minutes</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="f-date" class="field-label">Published</label>
+                    <select id="f-date" name="date" class="field">
+                        <option value="">Any time</option>
+                        <option value="today" @selected(($filters['date'] ?? '') === 'today')>Last 24 hours</option>
+                        <option value="week" @selected(($filters['date'] ?? '') === 'week')>This week</option>
+                        <option value="month" @selected(($filters['date'] ?? '') === 'month')>This month</option>
+                        <option value="year" @selected(($filters['date'] ?? '') === 'year')>This year</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="f-location" class="field-label">Place</label>
+                    <input id="f-location" type="text" name="location" value="{{ $filters['location'] ?? '' }}"
+                           class="field" placeholder="Goa, Delhi, Spiti">
+                </div>
+
+                <div>
+                    <label for="f-sort" class="field-label">Sort by</label>
+                    <select id="f-sort" name="sort" class="field">
+                        <option value="relevance" @selected($sort === 'relevance')>Relevance</option>
+                        <option value="newest" @selected($sort === 'newest')>Newest</option>
+                        <option value="popular" @selected($sort === 'popular')>Most viewed</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" class="btn-primary flex-1">Search</button>
+                    @if (request()->hasAny(['category', 'duration', 'date', 'location', 'sort', 'creator']))
+                        <a href="{{ route('search') }}?q={{ urlencode($query) }}" class="btn-ghost">Reset</a>
+                    @endif
+                </div>
+            </form>
+        </aside>
+
+        {{-- Results --}}
+        <div class="lg:col-span-3">
+            @if ($creators->isNotEmpty())
+                <section class="mb-8">
+                    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">Creators</h2>
+                    <div class="flex flex-wrap gap-3">
+                        @foreach ($creators as $creator)
+                            <a href="{{ $creator->profile_url ?? '#' }}"
+                               class="card card-hover flex items-center gap-3 p-3">
+                                <img src="{{ $creator->avatar_url }}" alt="" class="h-10 w-10 rounded-full object-cover">
+                                <span class="min-w-0">
+                                    <span class="flex items-center gap-1 text-sm font-semibold">
+                                        <span class="truncate">{{ $creator->channel_name }}</span>
+                                        @if ($creator->creatorProfile?->is_verified)
+                                            <x-icon name="verified" class="h-3.5 w-3.5 shrink-0 fill-brand-600 stroke-[1.2] text-brand-600" />
+                                        @endif
+                                    </span>
+                                    <span class="block text-xs text-ink-500 dark:text-ink-400">
+                                        {{ number_format($creator->followers_count) }} followers
+                                    </span>
+                                </span>
+                            </a>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
+            @if ($tags->isNotEmpty())
+                <section class="mb-8">
+                    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">Tags</h2>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($tags as $tag)
+                            <a href="{{ route('tags.show', $tag->slug) }}" class="chip">#{{ $tag->name }}</a>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
+            @if ($vlogs->isEmpty())
+                <x-empty-state icon="search" title="Nothing found">
+                    @if ($query !== '')
+                        No vlog matches “{{ $query }}” with those filters. Try fewer filters or a broader word.
+                    @else
+                        Type something above, or browse by category.
+                    @endif
+
+                    @if ($popularSearches->isNotEmpty())
+                        <span class="mt-4 flex flex-wrap justify-center gap-2">
+                            @foreach ($popularSearches as $term)
+                                <a href="{{ route('search') }}?q={{ urlencode($term) }}" class="chip !py-1 !text-xs">{{ $term }}</a>
+                            @endforeach
+                        </span>
+                    @endif
+                </x-empty-state>
+            @else
+                <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">Vlogs</h2>
+                <x-vlog-grid :vlogs="$vlogs" cols="sm:grid-cols-2 xl:grid-cols-3" />
+                <div class="mt-8">{{ $vlogs->links() }}</div>
+            @endif
         </div>
     </div>
-</div>
 @endsection

@@ -12,6 +12,8 @@ class AdClick extends Model
 
     protected $fillable = [
         'advertisement_id',
+        'user_id',
+        'page',
         'ip_address',
         'user_agent',
         'clicked_at',

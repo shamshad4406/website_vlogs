@@ -9,20 +9,29 @@ use Symfony\Component\HttpFoundation\Response;
 class IsCreator
 {
     /**
-     * Handle an incoming request.
+     * Creator studio gate. Admins pass through so they can support creators.
+     * Anyone else is sent to the "become a creator" flow rather than a 403,
+     * because that is the action they actually need to take.
      *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check()) {
-            return redirect()->route('login')->with('error', 'Please login to access creator area.');
+        $user = $request->user();
+
+        if (! $user) {
+            return redirect()->guest(route('login'));
         }
 
-        if (auth()->user()->isCreator()) {
+        if ($user->isAdmin()) {
             return $next($request);
         }
 
-        abort(403, 'Unauthorized action. You need a Creator role to access this area.');
+        if (! $user->isCreator()) {
+            return redirect()->route('become-creator.index')
+                ->with('info', 'You need an approved creator account to use the studio.');
+        }
+
+        return $next($request);
     }
 }

@@ -9,16 +9,16 @@ use Symfony\Component\HttpFoundation\Response;
 class IsUser
 {
     /**
-     * Handle an incoming request.
+     * Any signed-in, non-banned account. Used for the viewer library pages.
      *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check() && auth()->user()->isUser()) {
-            return $next($request);
+        if (! $request->user()) {
+            return redirect()->guest(route('login'));
         }
 
-        abort(403, 'Unauthorized action.');
+        return $next($request);
     }
 }

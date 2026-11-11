@@ -50,7 +50,28 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // A banned or deactivated account must never get a session. Without
+        // this check the sign-in appears to succeed and the account is only
+        // pushed back out on the *next* request, which reads as a glitch.
+        $user = Auth::user();
+
+        if (! $user->canSignIn()) {
+            $reason = $user->isBanned()
+                ? ($user->ban_reason ?: 'This account has been suspended.')
+                : 'This account has been deactivated. Contact support if you think this is a mistake.';
+
+            Auth::guard('web')->logout();
+
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => $reason,
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
+
+        $user->forceFill(['last_login_at' => now()])->saveQuietly();
     }
 
     /**

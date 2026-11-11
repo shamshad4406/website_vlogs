@@ -4,6 +4,8 @@
 # Environment files
 .env
 .env.backup
+.env.backup.*
+.env.*.backup
 .env.production
 
 # OS files

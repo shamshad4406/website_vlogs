@@ -1,69 +1,113 @@
 @extends('layouts.admin')
+@section('title', 'Creator applications')
 
 @section('content')
-<h1>Creator Applications</h1>
+    <x-page-header title="Creator applications"
+                   subtitle="Oldest first. Every decision sends the applicant an email." />
 
-<div class="card">
-    <div class="card-body">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Channel Name</th>
-                    <th>Bio</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($applications as $application)
-                <tr>
-                    <td>{{ $application->user->name }}</td>
-                    <td>{{ $application->channel_name }}</td>
-                    <td>{{ Str::limit($application->bio, 50) }}</td>
-                    <td>
-                        <span class="badge bg-{{ $application->status == 'pending' ? 'warning' : ($application->status == 'approved' ? 'success' : 'danger') }}">
-                            {{ $application->status }}
-                        </span>
-                    </td>
-                    <td>
-                        @if($application->status == 'pending')
-                        <form action="{{ route('admin.creators.approve-application', $application) }}" method="POST" style="display: inline;">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                        </form>
-                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $application->id }}">Reject</button>
-                        <!-- Reject Modal -->
-                        <div class="modal fade" id="rejectModal{{ $application->id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Reject Application</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form action="{{ route('admin.creators.reject-application', $application) }}" method="POST">
-                                        @csrf
-                                        <div class="modal-body">
-                                            <div class="mb-3">
-                                                <label class="form-label">Rejection Reason</label>
-                                                <textarea name="rejection_reason" class="form-control" required></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-danger">Reject</button>
-                                        </div>
-                                    </form>
-                                </div>
+    <x-tabs :items="[
+        'pending' => ['label' => 'Pending', 'count' => $counts['pending'] ?? 0],
+        'approved' => ['label' => 'Approved', 'count' => $counts['approved'] ?? 0],
+        'rejected' => ['label' => 'Rejected', 'count' => $counts['rejected'] ?? 0],
+    ]" :current="$status" param="status" />
+
+    @if ($applications->isEmpty())
+        <x-empty-state icon="check-circle" title="Nothing here"
+                       action="Back to creators" :action-url="route('admin.creators.index')">
+            @if ($status === 'pending')
+                Every application has been reviewed.
+            @else
+                No applications with this status.
+            @endif
+        </x-empty-state>
+    @else
+        <div class="space-y-5">
+            @foreach ($applications as $application)
+                <article class="card p-5" x-data="{ rejecting: false }">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div class="flex min-w-0 gap-3">
+                            <img src="{{ $application->user?->avatar_url }}" alt=""
+                                 class="h-11 w-11 shrink-0 rounded-full object-cover">
+                            <div class="min-w-0">
+                                <h2 class="font-semibold">{{ $application->channel_name }}</h2>
+                                <p class="text-sm text-ink-500 dark:text-ink-400">
+                                    @if ($application->user)
+                                        <a href="{{ route('admin.users.show', $application->user) }}" class="hover:text-brand-700">
+                                            {{ $application->user->name }}
+                                        </a>
+                                        · {{ $application->user->email }}
+                                    @else
+                                        Account deleted
+                                    @endif
+                                </p>
+                                <p class="mt-0.5 text-xs text-ink-400">
+                                    Applied {{ $application->created_at->diffForHumans() }}
+                                    @if ($application->user && ! $application->user->hasVerifiedEmail())
+                                        · <span class="font-semibold text-amber-600">email not verified</span>
+                                    @endif
+                                </p>
                             </div>
                         </div>
+
+                        <x-badge :tone="match($application->status) {
+                            'approved' => 'success', 'rejected' => 'danger', default => 'warning',
+                        }">{{ ucfirst($application->status) }}</x-badge>
+                    </div>
+
+                    <dl class="mt-5 space-y-4 border-t border-ink-100 pt-4 text-sm dark:border-white/10">
+                        <div>
+                            <dt class="font-semibold">About them</dt>
+                            <dd class="mt-0.5 whitespace-pre-line text-ink-600 dark:text-ink-300">{{ $application->bio }}</dd>
+                        </div>
+                        <div>
+                            <dt class="font-semibold">Why they want to publish here</dt>
+                            <dd class="mt-0.5 whitespace-pre-line text-ink-600 dark:text-ink-300">{{ $application->reason }}</dd>
+                        </div>
+                        @if ($application->rejection_reason)
+                            <div>
+                                <dt class="font-semibold text-danger">Rejection reason</dt>
+                                <dd class="mt-0.5 text-ink-600 dark:text-ink-300">{{ $application->rejection_reason }}</dd>
+                            </div>
                         @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-        {{ $applications->links() }}
-    </div>
-</div>
+                        @if ($application->reviewed_at)
+                            <div class="text-xs text-ink-400">
+                                Reviewed {{ $application->reviewed_at->diffForHumans() }}
+                                @if ($application->reviewer) by {{ $application->reviewer->name }} @endif
+                            </div>
+                        @endif
+                    </dl>
+
+                    @if ($application->status === 'pending')
+                        <div class="mt-5 flex flex-wrap gap-2 border-t border-ink-100 pt-4 dark:border-white/10">
+                            <form method="POST" action="{{ route('admin.creators.approve-application', $application) }}"
+                                  onsubmit="return confirm('Approve this application? The account becomes a creator immediately.')">
+                                @csrf
+                                <button type="submit" class="btn-primary btn-sm">
+                                    <x-icon name="check" class="h-4 w-4" /> Approve
+                                </button>
+                            </form>
+
+                            <button type="button" @click="rejecting = ! rejecting" class="btn-secondary btn-sm text-danger">
+                                <x-icon name="x" class="h-4 w-4" /> Reject
+                            </button>
+                        </div>
+
+                        <form x-show="rejecting" x-cloak method="POST"
+                              action="{{ route('admin.creators.reject-application', $application) }}"
+                              class="mt-4 space-y-2">
+                            @csrf
+                            <label for="reason-{{ $application->id }}" class="field-label">
+                                What should they change before applying again?
+                            </label>
+                            <textarea id="reason-{{ $application->id }}" name="rejection_reason" rows="3" required
+                                      minlength="10" maxlength="1000" class="field text-sm"></textarea>
+                            <button type="submit" class="btn-danger btn-sm">Send rejection</button>
+                        </form>
+                    @endif
+                </article>
+            @endforeach
+        </div>
+
+        <div class="mt-6">{{ $applications->links() }}</div>
+    @endif
 @endsection

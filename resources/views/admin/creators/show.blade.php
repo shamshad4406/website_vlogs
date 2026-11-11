@@ -1,78 +1,96 @@
 @extends('layouts.admin')
+@section('title', 'Creator')
 
 @section('content')
-<h1>Creator Details: {{ $creator->name }}</h1>
+<div class="mx-auto max-w-5xl">
+    <x-page-header :title="$creator->creatorProfile?->channel_name ?? $creator->name"
+                   :back="route('admin.creators.index')" back-label="Creators">
+        <form method="POST" action="{{ route('admin.creators.toggle-verification', $creator) }}">
+            @csrf
+            <button type="submit" class="btn-secondary btn-sm">
+                <x-icon name="verified" class="h-4 w-4" />
+                {{ $creator->creatorProfile?->is_verified ? 'Remove verification' : 'Verify channel' }}
+            </button>
+        </form>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong>Name:</strong> {{ $creator->name }}</p>
-                <p><strong>Email:</strong> {{ $creator->email }}</p>
-                <p><strong>Username:</strong> {{ $creator->username ?? '-' }}</p>
-            </div>
-            <div class="col-md-6">
-                <p><strong>Status:</strong>
-                    <span class="badge bg-{{ $creator->is_active ? 'success' : 'danger' }}">
-                        {{ $creator->is_active ? 'Active' : 'Inactive' }}
-                    </span>
-                </p>
-                <p><strong>Joined:</strong> {{ $creator->created_at->format('Y-m-d') }}</p>
-            </div>
-        </div>
-    </div>
-</div>
+        @if ($creator->username)
+            <a href="{{ route('creators.show', $creator->username) }}" class="btn-ghost btn-sm">
+                <x-icon name="external" class="h-4 w-4" /> Public page
+            </a>
+        @endif
+        <a href="{{ route('admin.users.show', $creator) }}" class="btn-ghost btn-sm">Account</a>
+    </x-page-header>
 
-@if($creator->creatorProfile)
-<div class="card mb-4">
-    <div class="card-header">
-        <h5>Creator Profile</h5>
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <x-stat label="Published" :value="number_format($stats['published'])" icon="video" />
+        <x-stat label="In review" :value="number_format($stats['pending'])" icon="clock" tone="warning" />
+        <x-stat label="Views" :value="short_number($stats['views'])" icon="eye" />
+        <x-stat label="Likes" :value="short_number($stats['likes'])" icon="heart" />
+        <x-stat label="Followers" :value="number_format($creator->followers_count)" icon="users" />
     </div>
-    <div class="card-body">
-        <p><strong>Channel Name:</strong> {{ $creator->creatorProfile->channel_name }}</p>
-        <p><strong>Bio:</strong> {{ $creator->creatorProfile->bio }}</p>
-        <p><strong>Verified:</strong> {{ $creator->creatorProfile->is_verified ? 'Yes' : 'No' }}</p>
-        <p><strong>Subscribers:</strong> {{ $creator->creatorProfile->subscribers_count }}</p>
-        <p><strong>Total Views:</strong> {{ $creator->creatorProfile->total_views }}</p>
-    </div>
-</div>
-@endif
 
-<div class="card">
-    <div class="card-header">
-        <h5>Creator's Vlogs ({{ $creator->vlogs->count() }})</h5>
-    </div>
-    <div class="card-body">
-        @if($creator->vlogs->count() > 0)
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Views</th>
-                    <th>Likes</th>
-                    <th>Created</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($creator->vlogs as $vlog)
-                <tr>
-                    <td>{{ Str::limit($vlog->title, 40) }}</td>
-                    <td>{{ $vlog->status }}</td>
-                    <td>{{ $vlog->views_count }}</td>
-                    <td>{{ $vlog->likes_count }}</td>
-                    <td>{{ $vlog->created_at->format('Y-m-d') }}</td>
-                </tr>
+    @if ($strikes->isNotEmpty())
+        <div class="panel mt-6 border-red-200 dark:border-red-500/20">
+            <h2 class="mb-3 section-title text-danger">Strikes</h2>
+            <ul class="space-y-2 text-sm">
+                @foreach ($strikes as $strike)
+                    <li class="flex items-start justify-between gap-3">
+                        <span>
+                            <span class="font-semibold">Level {{ $strike->level }} — {{ $strike->reason }}</span>
+                            <span class="block text-xs text-ink-500">
+                                {{ $strike->created_at->format('j M Y') }}
+                                @if ($strike->vlog) · on "{{ Str::limit($strike->vlog->title, 50) }}" @endif
+                            </span>
+                        </span>
+                        <x-badge :tone="$strike->status === 'active' ? 'danger' : 'muted'">{{ ucfirst($strike->status) }}</x-badge>
+                    </li>
                 @endforeach
-            </tbody>
-        </table>
+            </ul>
+            <a href="{{ route('admin.strikes.index') }}" class="btn-ghost btn-sm mt-3">Manage strikes</a>
+        </div>
+    @endif
+
+    <div class="panel mt-6">
+        <h2 class="mb-4 section-title">Vlogs</h2>
+
+        @if ($vlogs->isEmpty())
+            <p class="py-6 text-center text-sm text-ink-500 dark:text-ink-400">Nothing uploaded yet.</p>
         @else
-        <p class="text-muted">No vlogs yet.</p>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Vlog</th>
+                            <th>Status</th>
+                            <th class="text-right">Views</th>
+                            <th>Published</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($vlogs as $vlog)
+                            <tr>
+                                <td class="max-w-sm">
+                                    <a href="{{ route('admin.vlogs.show', $vlog) }}"
+                                       class="line-clamp-2-safe font-medium hover:text-brand-700">{{ $vlog->title }}</a>
+                                    <span class="text-xs text-ink-400">{{ $vlog->category?->name }}</span>
+                                </td>
+                                <td><x-badge :tone="$vlog->status_color">{{ $vlog->status_label }}</x-badge></td>
+                                <td class="text-right tabular-nums">{{ number_format($vlog->views_count) }}</td>
+                                <td class="whitespace-nowrap text-sm text-ink-500">
+                                    {{ $vlog->published_at?->format('j M Y') ?? '—' }}
+                                </td>
+                                <td class="text-right">
+                                    <a href="{{ route('admin.vlogs.show', $vlog) }}" class="btn-ghost btn-sm">Open</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">{{ $vlogs->links() }}</div>
         @endif
     </div>
-</div>
-
-<div class="mt-3">
-    <a href="{{ route('admin.creators.index') }}" class="btn btn-secondary">Back to Creators</a>
 </div>
 @endsection

@@ -10,10 +10,7 @@ class ContactEnquiry extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'email',
-        'subject',
-        'message',
-        'status',
+        'name', 'email', 'subject', 'message',
+        'ip_address', 'status', 'admin_notes',
     ];
 }

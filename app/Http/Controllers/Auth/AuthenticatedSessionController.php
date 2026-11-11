@@ -28,7 +28,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Staff and creators belong in their own workspace, not the viewer
+        // library. A page they were bounced off still wins via intended().
+        return redirect()->intended($request->user()->homeRoute());
     }
 
     /**

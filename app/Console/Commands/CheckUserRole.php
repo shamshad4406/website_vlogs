@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
-use App\Models\Role;
+use Illuminate\Console\Command;
 
 class CheckUserRole extends Command
 {
@@ -18,8 +17,9 @@ class CheckUserRole extends Command
 
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("User with email '{$email}' not found.");
+
             return 1;
         }
 
@@ -30,12 +30,12 @@ class CheckUserRole extends Command
             $this->info("Role Name: {$user->role->name}");
             $this->info("Role Slug: {$user->role->slug}");
         } else {
-            $this->warn("No role assigned");
+            $this->warn('No role assigned');
         }
 
-        $this->info("isCreator(): " . ($user->isCreator() ? 'true' : 'false'));
-        $this->info("isAdmin(): " . ($user->isAdmin() ? 'true' : 'false'));
-        $this->info("isUser(): " . ($user->isUser() ? 'true' : 'false'));
+        $this->info('isCreator(): '.($user->isCreator() ? 'true' : 'false'));
+        $this->info('isAdmin(): '.($user->isAdmin() ? 'true' : 'false'));
+        $this->info('isUser(): '.($user->isUser() ? 'true' : 'false'));
 
         return 0;
     }

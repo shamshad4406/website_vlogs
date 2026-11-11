@@ -10,6 +10,9 @@ class MediaLibrary extends Model
 {
     use HasFactory;
 
+    // The table is media_library, not the pluralised media_libraries.
+    protected $table = 'media_library';
+
     protected $fillable = [
         'uploaded_by',
         'file_name',

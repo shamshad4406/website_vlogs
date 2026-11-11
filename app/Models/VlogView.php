@@ -16,6 +16,8 @@ class VlogView extends Model
         'ip_address',
         'user_agent',
         'viewed_at',
+        'session_hash',
+        'watch_seconds',
     ];
 
     protected $casts = [

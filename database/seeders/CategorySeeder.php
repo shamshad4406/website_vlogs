@@ -2,33 +2,37 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Category;
+use Illuminate\Database\Seeder;
 
 class CategorySeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $categories = [
-            ['name' => 'Travel', 'slug' => 'travel', 'description' => 'Travel vlogs and adventures', 'sort_order' => 1],
-            ['name' => 'Food', 'slug' => 'food', 'description' => 'Food and cooking vlogs', 'sort_order' => 2],
-            ['name' => 'Technology', 'slug' => 'technology', 'description' => 'Tech reviews and tutorials', 'sort_order' => 3],
-            ['name' => 'Lifestyle', 'slug' => 'lifestyle', 'description' => 'Lifestyle and daily vlogs', 'sort_order' => 4],
-            ['name' => 'Gaming', 'slug' => 'gaming', 'description' => 'Gaming content and walkthroughs', 'sort_order' => 5],
-            ['name' => 'Education', 'slug' => 'education', 'description' => 'Educational content and tutorials', 'sort_order' => 6],
-            ['name' => 'Entertainment', 'slug' => 'entertainment', 'description' => 'Entertainment and comedy', 'sort_order' => 7],
-            ['name' => 'Fitness', 'slug' => 'fitness', 'description' => 'Fitness and workout vlogs', 'sort_order' => 8],
+            ['name' => 'Travel', 'icon' => 'map-pin', 'color' => '#0E7490', 'description' => 'Trips, destinations and road stories from across the country and beyond.'],
+            ['name' => 'Food', 'icon' => 'utensils', 'color' => '#C2410C', 'description' => 'Street food, home kitchens, recipes and restaurant finds.'],
+            ['name' => 'Lifestyle', 'icon' => 'sparkles', 'color' => '#9333EA', 'description' => 'Daily life, routines, home, style and everything in between.'],
+            ['name' => 'Technology', 'icon' => 'cpu', 'color' => '#1D4ED8', 'description' => 'Hands-on reviews, builds, workflows and plain-language explainers.'],
+            ['name' => 'Gaming', 'icon' => 'gamepad', 'color' => '#BE123C', 'description' => 'Playthroughs, setups and community moments.'],
+            ['name' => 'Education', 'icon' => 'book-open', 'color' => '#047857', 'description' => 'Learn something in the time it takes to drink a coffee.'],
+            ['name' => 'Entertainment', 'icon' => 'film', 'color' => '#DB2777', 'description' => 'Comedy, culture, music and things worth watching twice.'],
+            ['name' => 'Fitness', 'icon' => 'activity', 'color' => '#B45309', 'description' => 'Training, running, yoga and getting started without the hype.'],
         ];
 
-        foreach ($categories as $category) {
-            Category::firstOrCreate(
-                ['slug' => $category['slug']],
-                $category
+        foreach ($categories as $i => $category) {
+            Category::updateOrCreate(
+                ['slug' => str($category['name'])->slug()->toString()],
+                $category + [
+                    'slug' => str($category['name'])->slug()->toString(),
+                    'sort_order' => $i + 1,
+                    'is_active' => true,
+                    'meta_title' => $category['name'].' vlogs',
+                    'meta_description' => $category['description'],
+                ]
             );
         }
+
+        $this->command->info('Seeded '.count($categories).' categories.');
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
+use Illuminate\Console\Command;
 
 class MakeUserCreator extends Command
 {
@@ -31,15 +31,17 @@ class MakeUserCreator extends Command
 
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("User with email '{$email}' not found.");
+
             return 1;
         }
 
         $creatorRole = Role::where('slug', 'creator')->first();
 
-        if (!$creatorRole) {
+        if (! $creatorRole) {
             $this->error('Creator role not found. Please run php artisan db:seed --class=RoleSeeder');
+
             return 1;
         }
 

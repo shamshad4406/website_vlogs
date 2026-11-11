@@ -4,71 +4,68 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Vlog;
-use Illuminate\Auth\Access\Response;
 
 class VlogPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    public function viewAny(?User $user): bool
     {
         return true;
     }
 
     /**
-     * Determine whether the user can view the model.
+     * Opening the watch page. Only published, public or unlisted vlogs are
+     * visible to anyone else; the owner and admins may preview any state.
      */
-    public function view(User $user, Vlog $vlog): bool
+    public function view(?User $user, Vlog $vlog): bool
     {
-        if ($vlog->visibility === 'public') {
-            return true;
-        }
-
-        if ($vlog->visibility === 'private' && $user->id === $vlog->creator_id) {
-            return true;
-        }
-
-        return false;
+        return $vlog->isViewableBy($user);
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return $user->isCreator() || $user->isAdmin();
+        return ($user->isCreator() || $user->isAdmin()) && ! $user->isBanned();
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Vlog $vlog): bool
     {
-        return $user->id === $vlog->creator_id || $user->isAdmin();
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->id === $vlog->creator_id && ! $user->isBanned();
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Vlog $vlog): bool
     {
-        return $user->id === $vlog->creator_id || $user->isAdmin();
+        return $user->isAdmin() || $user->id === $vlog->creator_id;
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
     public function restore(User $user, Vlog $vlog): bool
     {
-        return $user->id === $vlog->creator_id || $user->isAdmin();
+        return $user->isAdmin() || $user->id === $vlog->creator_id;
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
     public function forceDelete(User $user, Vlog $vlog): bool
     {
         return $user->isAdmin();
+    }
+
+    /** Submit for review, schedule, unpublish: owner-only workflow actions. */
+    public function manageWorkflow(User $user, Vlog $vlog): bool
+    {
+        return $user->isAdmin() || ($user->id === $vlog->creator_id && ! $user->isBanned());
+    }
+
+    /** Approve, reject, feature, trend: moderation only. */
+    public function moderate(User $user, Vlog $vlog): bool
+    {
+        return $user->isModerator();
+    }
+
+    public function comment(User $user, Vlog $vlog): bool
+    {
+        return $vlog->allow_comments
+            && $vlog->isLivePublished()
+            && ! $user->isBanned();
     }
 }

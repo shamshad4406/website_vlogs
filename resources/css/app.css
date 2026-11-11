@@ -1,3 +1,266 @@
+/* -------------------------------------------------------------------------
+ | Fonts
+ |
+ | Loaded from Bunny Fonts, which is GDPR-friendly and sets no cookies.
+ | For production, download the files into public/fonts and swap these two
+ | imports for @font-face rules so the site has no third-party font request.
+ | CSS requires @import before any other rule, so these stay at the top.
+ * ---------------------------------------------------------------------- */
+@import url('https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap');
+@import url('https://fonts.bunny.net/css?family=poppins:600,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    html {
+        -webkit-tap-highlight-color: transparent;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-ink-50 text-ink-800 antialiased dark:bg-ink-950 dark:text-ink-100;
+    }
+
+    h1, h2, h3, h4 {
+        @apply font-display tracking-tight text-ink-900 dark:text-white;
+    }
+
+    /* A single, visible focus ring everywhere: WCAG 2.2 keyboard access. */
+    :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+        @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-ink-950;
+    }
+
+    ::selection {
+        @apply bg-brand-200 text-ink-900;
+    }
+}
+
+@layer components {
+    /* --- Surfaces ------------------------------------------------------ */
+    .card {
+        @apply rounded-card border border-ink-200/70 bg-white shadow-card dark:border-white/10 dark:bg-ink-900;
+    }
+
+    .card-hover {
+        @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-lift;
+    }
+
+    .panel {
+        @apply rounded-card border border-ink-200/70 bg-white p-5 dark:border-white/10 dark:bg-ink-900 sm:p-6;
+    }
+
+    /* --- Buttons ------------------------------------------------------- */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold
+               transition disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-primary {
+        @apply btn bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900;
+    }
+
+    .btn-secondary {
+        @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-50
+               dark:border-white/15 dark:bg-white/5 dark:text-ink-100 dark:hover:bg-white/10;
+    }
+
+    .btn-ghost {
+        @apply btn text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-white/10;
+    }
+
+    .btn-danger {
+        @apply btn bg-danger text-white hover:bg-red-700;
+    }
+
+    .btn-sm {
+        @apply px-3 py-1.5 text-xs;
+    }
+
+    .btn-lg {
+        @apply px-6 py-3 text-base;
+    }
+
+    /* --- Forms --------------------------------------------------------- */
+    .field-label {
+        @apply mb-1.5 block text-sm font-medium text-ink-700 dark:text-ink-200;
+    }
+
+    .field {
+        @apply block w-full rounded-lg border-ink-200 bg-white text-ink-900 placeholder:text-ink-400
+               focus:border-brand-500 focus:ring-brand-500
+               dark:border-white/15 dark:bg-ink-950 dark:text-white dark:placeholder:text-ink-500;
+    }
+
+    .field-invalid {
+        @apply border-rose-400 focus:border-rose-500 focus:ring-rose-500
+               dark:border-rose-500/60;
+    }
+
+    .field-error {
+        @apply mt-1.5 text-sm text-danger;
+    }
+
+    .field-help {
+        @apply mt-1.5 text-xs text-ink-500 dark:text-ink-400;
+    }
+
+    /* --- Badges -------------------------------------------------------- */
+    .badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    }
+
+    .badge-brand { @apply badge bg-brand-100 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200; }
+    .badge-success { @apply badge bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300; }
+    .badge-warning { @apply badge bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300; }
+    .badge-danger { @apply badge bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300; }
+    .badge-muted { @apply badge bg-ink-100 text-ink-600 dark:bg-white/10 dark:text-ink-300; }
+    .badge-info { @apply badge bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300; }
+
+    /* --- Navigation ---------------------------------------------------- */
+    .nav-item {
+        @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-ink-600
+               transition hover:bg-ink-100 hover:text-ink-900
+               dark:text-ink-300 dark:hover:bg-white/10 dark:hover:text-white;
+    }
+
+    .nav-item-active {
+        @apply bg-brand-50 text-brand-800 hover:bg-brand-100 hover:text-brand-900
+               dark:bg-brand-500/15 dark:text-brand-100;
+    }
+
+    .chip {
+        @apply inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3.5 py-1.5
+               text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-700
+               dark:border-white/15 dark:bg-white/5 dark:text-ink-200 dark:hover:border-brand-400;
+    }
+
+    .chip-active {
+        @apply border-brand-700 bg-brand-700 text-white hover:border-brand-800 hover:bg-brand-800 hover:text-white
+               dark:border-brand-500 dark:bg-brand-600 dark:text-white;
+    }
+
+    /* --- Tables -------------------------------------------------------- */
+    .table-wrap {
+        @apply overflow-x-auto rounded-card border border-ink-200/70 bg-white dark:border-white/10 dark:bg-ink-900;
+    }
+
+    .table {
+        @apply min-w-full divide-y divide-ink-200 text-sm dark:divide-white/10;
+    }
+
+    .table thead th {
+        @apply whitespace-nowrap bg-ink-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide
+               text-ink-500 dark:bg-white/5 dark:text-ink-400;
+    }
+
+    .table tbody tr {
+        @apply divide-ink-200 transition hover:bg-ink-50/70 dark:hover:bg-white/5;
+    }
+
+    .table tbody td {
+        @apply px-4 py-3 align-middle;
+    }
+
+    .table tbody {
+        @apply divide-y divide-ink-200 dark:divide-white/10;
+    }
+
+    /* --- Media --------------------------------------------------------- */
+    .thumb {
+        @apply relative block overflow-hidden rounded-card bg-ink-200 dark:bg-ink-800;
+        aspect-ratio: 16 / 9;
+    }
+
+    /* Direct child only: an avatar or icon nested inside the overlay must
+       keep its own size utilities. */
+    .thumb > img {
+        @apply h-full w-full object-cover transition duration-300;
+    }
+
+    .duration-pill {
+        @apply absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-semibold
+               tabular-nums text-white;
+    }
+
+    /* Horizontal row that scrolls with the thumb on mobile. */
+    .rail {
+        @apply flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2;
+        scrollbar-width: thin;
+    }
+
+    .rail > * {
+        @apply snap-start;
+    }
+
+    .rail::-webkit-scrollbar { height: 6px; }
+    .rail::-webkit-scrollbar-thumb { @apply rounded bg-ink-300 dark:bg-ink-700; }
+
+    /* --- Loading ------------------------------------------------------- */
+    .skeleton {
+        @apply relative overflow-hidden rounded bg-ink-200 dark:bg-ink-800;
+    }
+
+    .skeleton::after {
+        @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent;
+        content: '';
+        animation: shimmer 1.6s infinite;
+    }
+
+    /* --- Long-form content (static pages, descriptions) ---------------- */
+    .prose-page {
+        @apply text-[15px] leading-7 text-ink-700 dark:text-ink-300;
+    }
+
+    .prose-page h2 {
+        @apply mb-3 mt-8 text-xl font-semibold;
+    }
+
+    .prose-page h3 {
+        @apply mb-2 mt-6 text-lg font-semibold;
+    }
+
+    .prose-page p { @apply mb-4; }
+    .prose-page ul { @apply mb-4 list-disc space-y-1.5 pl-5; }
+    .prose-page ol { @apply mb-4 list-decimal space-y-1.5 pl-5; }
+    .prose-page a { @apply font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800 dark:text-brand-300; }
+    .prose-page strong { @apply font-semibold text-ink-900 dark:text-white; }
+    .prose-page blockquote {
+        @apply mb-4 border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900
+               dark:bg-amber-500/10 dark:text-amber-200;
+    }
+    .prose-page table { @apply mb-4 w-full text-sm; }
+    .prose-page th { @apply border-b border-ink-200 px-3 py-2 text-left font-semibold dark:border-white/10; }
+    .prose-page td { @apply border-b border-ink-100 px-3 py-2 dark:border-white/5; }
+    .prose-page code { @apply rounded bg-ink-100 px-1.5 py-0.5 text-[13px] dark:bg-white/10; }
+
+    /* Section heading used across the public pages. */
+    .section-title {
+        @apply text-lg font-semibold sm:text-xl;
+    }
+}
+
+@layer utilities {
+    .line-clamp-2-safe {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* Native video element: hide the download button where browsers allow it. */
+video::-internal-media-controls-download-button { display: none; }
+video::-webkit-media-controls-enclosure { overflow: hidden; }
